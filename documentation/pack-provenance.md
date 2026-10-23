@@ -11,14 +11,14 @@ The pack is published as an asset of the matching ExecuTorch GitHub release,
 which is also what its `.pdsc` declares as its download location:
 
 ```xml
-<url>https://github.com/pytorch/executorch/releases/download/v1.4.0/</url>
+<url>https://github.com/pytorch/executorch/releases/download/v1.4.1/</url>
 ```
 
 So the normal acquisition routes work, and `./build.sh` (which passes
 `--packs`) takes care of it on a fresh clone. To install it by hand:
 
 ```bash
-cpackget add PyTorch::ExecuTorch@1.4.0
+cpackget add PyTorch::ExecuTorch@1.4.1
 ```
 
 The version is pinned exactly, in `cmsis-executorch-simple.csolution.yml` and
@@ -26,10 +26,10 @@ The version is pinned exactly, in `cmsis-executorch-simple.csolution.yml` and
 
 ```yaml
 packs:
-  - pack: PyTorch::ExecuTorch@1.4.0
+  - pack: PyTorch::ExecuTorch@1.4.1
 ```
 
-Both must agree. The pin is exact rather than a `@^1.4.0` range because the
+Both must agree. The pin is exact rather than a `@^1.4.1` range because the
 pack's C++ runtime and the Python exporter have to be the *same* ExecuTorch
 version — see [Moving to a new ExecuTorch version](#moving-to-a-new-executorch-version).
 

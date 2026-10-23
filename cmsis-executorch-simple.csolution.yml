@@ -15,13 +15,43 @@ solution:
     # Pinned exactly: the pack's C++ runtime and the Python exporter pinned in
     # requirements-executorch.txt must be the same ExecuTorch version, or the
     # .pte fails to load. `cbuild --packs` fetches it from the public index.
-    - pack: PyTorch::ExecuTorch@1.4.0
+    - pack: PyTorch::ExecuTorch@1.4.1
     - pack: ARM::CMSIS
     - pack: ARM::CMSIS-NN
     - pack: ARM::CMSIS-Compiler
     - pack: ARM::Cortex_DFP
 
   target-types:
+    - type: SSE-320-RPS
+      board: SSE-320
+      device: SSE-320-FVP
+      variables:
+        - Board-Layer: $SolutionDir()$/board/Corstone-320/Board-CPU.clayer.yml
+        - AI-Layer: $SolutionDir()$/ai_layer/rps.clayer.yml
+      target-set:
+        - set:
+          images:
+            - project-context: rps.Debug
+          debugger:
+            name: Arm-FVP
+            model: FVP_Corstone_SSE-320
+            config-file: board/Corstone-320/fvp_config.txt
+            args: "--simlimit 60"
+    - type: SSE-320-M85
+      board: SSE-320
+      device: SSE-320-FVP
+      variables:
+        - Board-Layer: $SolutionDir()$/board/Corstone-320/Board-CPU.clayer.yml
+        - AI-Layer: $SolutionDir()$/ai_layer/cpu.clayer.yml
+      target-set:
+        - set:
+          images:
+            - project-context: cmsis-executorch-cpu.Debug
+          debugger:
+            name: Arm-FVP
+            model: FVP_Corstone_SSE-320
+            config-file: board/Corstone-320/fvp_config.txt
+            args: "--simlimit 60"
     # Corstone-320 with an Ethos-U85 NPU, simulated on the Arm FVP.
     - type: SSE-320-U85
       board: SSE-320
@@ -46,6 +76,11 @@ solution:
 
   projects:
     - project: ./cmsis-executorch-simple.cproject.yml
+      for-context: +SSE-320-U85
+    - project: ./cmsis-executorch-cpu.cproject.yml
+      for-context: +SSE-320-M85
+    - project: ./rps/rps.cproject.yml
+      for-context: +SSE-320-RPS
 
   # MLOps information: exported to cmsis-executorch-simple.cbuild-mlops.yml when
   # building with `cbuild ... --active SSE-320-U85`. Retarget the NPU here and

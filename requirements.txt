@@ -10,6 +10,6 @@ torch==2.13.0
 # Vela, the Ethos-U compiler. Same pin as executorch's `ethos_u` extra.
 ethos-u-vela==5.1.0
 
-# executorch and torchao come from the PyTorch nightly index and therefore live
-# in requirements-executorch.txt; the TOSA serializer needs --no-deps and lives
+# executorch and torchao are pinned in requirements-executorch.txt;
+# the TOSA serializer needs --no-deps and lives
 # in requirements-arm-tosa.txt. setup_venv.py installs all three in order.

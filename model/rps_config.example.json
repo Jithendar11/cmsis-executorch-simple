@@ -1,0 +1,5 @@
+{
+  "checkpoint": "rps_alif_model.pth",
+  "images": ["calibration/Paper.png", "calibration/Rock.png", "calibration/Scissors.png"],
+  "labels": ["PAPER", "ROCK", "SCISSORS", "UNKNOWN"]
+}

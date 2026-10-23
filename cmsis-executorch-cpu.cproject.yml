@@ -1,0 +1,47 @@
+# Copyright 2026 Arm Limited and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+project:
+  packs:
+    - pack: PyTorch::ExecuTorch@1.4.1
+  misc:
+    - CPP:
+        - -std=gnu++17
+        - -Wno-deprecated-declarations
+    - for-compiler: GCC
+      Link:
+        - -Wl,-u,_printf_float
+  add-path:
+    - $SolutionDir()$/ai_layer/cpu_model
+  groups:
+    - group: App
+      files:
+        - file: ./src/app_cpu.cpp
+        - file: ./ai_layer/cpu_model/model_pte.h
+        - file: ./ai_layer/cpu_model/model_reference.h
+        - file: ./ai_layer/cpu_model/model_io.h
+  layers:
+    - layer: $Board-Layer$
+      type: Board
+    - layer: $AI-Layer$
+      type: AI
+  executes:
+    - execute: convert-cpu-model
+      run: ${CMAKE_COMMAND} -DCPU_ONLY=ON -P $input(0)$
+      input:
+        - $SolutionDir()$/scripts/run_export.cmake
+        - $SolutionDir()$/scripts/run_export.py
+        - $SolutionDir()$/model/model.py
+        - $SolutionDir()$/model/export_cpu.py
+        - $SolutionDir()$/model/runtime_layout.py
+        - $SolutionDir()$/model/export_model.py
+        - $SolutionDir()$/scripts/gen_components.py
+        - $SolutionDir()$/cmsis-executorch-cpu.cproject.yml
+      output:
+        - $SolutionDir()$/ai_layer/cpu_model/model_pte.h
+        - $SolutionDir()$/ai_layer/cpu_model/model_reference.h
+        - $SolutionDir()$/ai_layer/cpu_model/model_io.h
+  output:
+    type:
+      - elf
+      - hex
+      - map

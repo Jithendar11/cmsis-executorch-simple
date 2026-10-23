@@ -1,4 +1,22 @@
-# ExecuTorch on Ethos-U
+# ExecuTorch on Cortex-M and Ethos-U
+
+For model compilation only, see the detailed
+[Cortex-M85 CPU model compilation guide](documentation/README_CPU_M85_MODEL_COMPILATION.md).
+
+The `SSE-320-M85` target adds CPU-only TinyCNN inference on the Corstone-320
+Cortex-M85 FVP using CMSIS-NN. Select it in CMSIS Solution, build, and use
+**Run**. If the export regenerates the operator selection and requests a
+second build, build again. The original NPU target is `SSE-320-U85`.
+
+See [CPU deployment and validation](documentation/cortex-m-cpu.md) for the
+export flow, current validation status, and the next steps for M55 or hardware.
+The exporter and runtime pack are pinned to ExecuTorch **1.4.1**.
+
+The CPU exporter now uses signed **INT8 inputs and outputs**. The separate
+`SSE-320-RPS` target loads the trained SqueezeNet 1.1 rock-paper-scissors
+checkpoint configured in local `model/rps_config.json`. See
+[RPS export and preprocessing](documentation/rps.md) for its input layout,
+calibration data, memory requirements and build instructions.
 
 This example shows how to deploy and run an
 [ExecuTorch](https://github.com/pytorch/executorch) model on an Arm Ethos-U NPU.
@@ -31,12 +49,12 @@ application.
 The pack [`PyTorch::ExecuTorch`](https://www.keil.arm.com/packs/executorch-pytorch/) can be optionally installed manually with:
 
 ```bash
-cpackget add PyTorch::ExecuTorch@1.4.0
+cpackget add PyTorch::ExecuTorch@1.4.1
 ```
 
 > [!Note]
 > The pack and Python exporter versions must match, as the generated `.pte`
-> format is consumed by the runtime supplied in `PyTorch::ExecuTorch@1.4.0`.
+> format is consumed by the runtime supplied in `PyTorch::ExecuTorch@1.4.1`.
 
 ## Quick start
 

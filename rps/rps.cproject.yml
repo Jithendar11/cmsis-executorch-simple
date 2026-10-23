@@ -1,0 +1,46 @@
+# Copyright 2026 Arm Limited and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+project:
+  packs:
+    - pack: PyTorch::ExecuTorch@1.4.1
+  misc:
+    - CPP:
+        - -std=gnu++17
+        - -Wno-deprecated-declarations
+  add-path:
+    - $SolutionDir()$/ai_layer/rps_model
+    - $SolutionDir()$/src
+  groups:
+    - group: App
+      files:
+        - file: ../src/app_cpu.cpp
+        - file: ../src/rps_preprocess.h
+        - file: ../ai_layer/rps_model/model_pte.h
+        - file: ../ai_layer/rps_model/model_reference.h
+        - file: ../ai_layer/rps_model/model_io.h
+  layers:
+    - layer: $Board-Layer$
+      type: Board
+    - layer: $AI-Layer$
+      type: AI
+  executes:
+    - execute: convert-rps-model
+      run: ${CMAKE_COMMAND} -DCPU_ONLY=ON -DCPU_MODEL=rps -P $input(0)$
+      input:
+        - $SolutionDir()$/scripts/run_export.cmake
+        - $SolutionDir()$/scripts/run_export.py
+        - $SolutionDir()$/scripts/gen_components.py
+        - $SolutionDir()$/model/export_cpu.py
+        - $SolutionDir()$/model/runtime_layout.py
+        - $SolutionDir()$/model/export_model.py
+        - $SolutionDir()$/model/rps_model.py
+        - $SolutionDir()$/model/rps_config.json
+      output:
+        - $SolutionDir()$/ai_layer/rps_model/model_pte.h
+        - $SolutionDir()$/ai_layer/rps_model/model_reference.h
+        - $SolutionDir()$/ai_layer/rps_model/model_io.h
+  output:
+    type:
+      - elf
+      - hex
+      - map

@@ -6,7 +6,7 @@
 # the AI layer; board bring-up from the Board layer.
 project:
   packs:
-    - pack: PyTorch::ExecuTorch@1.4.0
+    - pack: PyTorch::ExecuTorch@1.4.1
     - pack: ARM::CMSIS
 
   misc:

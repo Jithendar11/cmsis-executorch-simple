@@ -1,0 +1,36 @@
+# Copyright 2026 Arm Limited and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+layer:
+  type: Board
+  description: Corstone-320 Cortex-M85 CPU-only inference
+  for-board: ARM::SSE-320
+  for-device: ARM::SSE-320-FVP
+  connections:
+    - connect: Corstone-320
+      provides:
+        - STDIN
+        - STDOUT
+        - STDERR
+        - Heap: 98304
+  define:
+    - CMSIS_target_header: \"Corstone-320.h\"
+  packs:
+    - pack: ARM::CMSIS
+    - pack: ARM::CMSIS-Compiler@^2.1.0
+    - pack: ARM::SSE_320_BSP@1.0.0
+  components:
+    - component: CMSIS:CORE
+    - component: CMSIS-Compiler:CORE
+    - component: CMSIS-Compiler:STDERR:Custom
+    - component: CMSIS-Compiler:STDIN:Custom
+    - component: CMSIS-Compiler:STDOUT:Custom
+    - component: Device:Definition
+    - component: Device:Startup&C Startup
+  groups:
+    - group: Board
+      files:
+        - file: ./main.c
+        - file: ./main.h
+        - file: ./retarget_stdio.c
+  linker:
+    - regions: ./regions_SSE-320.h

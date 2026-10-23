@@ -35,8 +35,14 @@ if(NOT EXISTS "${VENV_PYTHON}")
         "  ${SETUP_HINT}\n")
 endif()
 
+if(CPU_ONLY)
+    set(EXPORT_ARGS --backend cpu)
+    if(CPU_MODEL)
+        list(APPEND EXPORT_ARGS --model "${CPU_MODEL}")
+    endif()
+endif()
 execute_process(
-    COMMAND "${VENV_PYTHON}" "${CMAKE_CURRENT_LIST_DIR}/run_export.py"
+    COMMAND "${VENV_PYTHON}" "${CMAKE_CURRENT_LIST_DIR}/run_export.py" ${EXPORT_ARGS}
     RESULT_VARIABLE result
 )
 

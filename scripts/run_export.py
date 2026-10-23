@@ -13,6 +13,7 @@
 
 from __future__ import annotations
 
+import argparse
 import filecmp
 import re
 import shutil
@@ -30,34 +31,49 @@ def run(*args: str | Path) -> None:
     subprocess.run(cmd, check=True)
 
 
-def resolved_pack_version(sol: Path) -> str | None:
+def resolved_pack_version(sol: Path, required: str | None = None) -> str | None:
     """The pack version CMSIS-Toolbox settled on, from its own record of the
     resolution. Without it gen_components.py falls back to the newest version
     installed, which is only the same thing when one is installed."""
-    # A resolved-pack entry is the selected one only when a selected-by-pack
-    # list follows it; the file also records versions that are merely installed.
+    # The lock can retain older selections alongside a newly pinned version.
+    # Match the CPU project's exact version rather than taking the first entry.
+    # Entries without selected-by-pack are installed, not selected.
     selected = rf"resolved-pack: {re.escape(PACK)}@(\S+)\n\s+selected-by-pack:"
+    versions = set()
     for record in sol.glob("*.cbuild-pack.yml"):
-        found = re.search(selected, record.read_text())
-        if found:
-            return found.group(1)
-    return None
+        versions.update(re.findall(selected, record.read_text()))
+    if required:
+        if versions and required not in versions:
+            raise RuntimeError(f"{PACK}@{required} is required; resolved versions: {sorted(versions)}")
+        return required
+    if len(versions) > 1:
+        raise RuntimeError(f"Ambiguous {PACK} selection: {sorted(versions)}. Align the project and AI-layer pack pins, then rebuild.")
+    return next(iter(versions), None)
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--backend", choices=("ethosu", "cpu"), default="ethosu")
+    parser.add_argument("--model", choices=("tinycnn", "rps"), default="tinycnn")
+    args = parser.parse_args()
     # sys.executable is the venv interpreter: run_export.cmake invoked us with it.
     python = sys.executable
+    cpu = args.backend == "cpu"
+    version = resolved_pack_version(SOL, required="1.4.1" if cpu else None)
 
-    run(
-        python,
-        SOL / "model" / "export_model.py",
-        "--mlops",
-        SOL / "cmsis-executorch-simple.cbuild-mlops.yml",
-        "--output-dir",
-        SOL / "model",
-        "--header",
-        SOL / "ai_layer" / "model" / "model_pte.h",
-    )
+    if args.backend == "cpu":
+        run(python, SOL / "model" / "export_cpu.py", "--cpu", "cortex-m85", "--model", args.model)
+    else:
+        run(
+            python,
+            SOL / "model" / "export_model.py",
+            "--mlops",
+            SOL / "cmsis-executorch-simple.cbuild-mlops.yml",
+            "--output-dir",
+            SOL / "model",
+            "--header",
+            SOL / "ai_layer" / "model" / "model_pte.h",
+        )
 
     # Regenerate the AI layer's component selection from the fresh .pte. The
     # clayer is resolved at *configure* time: touching it mid-build makes
@@ -65,18 +81,24 @@ def main() -> int:
     # regenerated file into place when its content actually changed -- and then
     # fail with a re-run hint, since the new selection cannot take effect in
     # this build anyway.
-    clayer = SOL / "ai_layer" / "ai_layer.clayer.yml"
+    rps = cpu and args.model == "rps"
+    clayer = SOL / "ai_layer" / ("rps.clayer.yml" if rps else "cpu.clayer.yml" if cpu else "ai_layer.clayer.yml")
     new = clayer.with_suffix(clayer.suffix + ".new")
 
-    version = resolved_pack_version(SOL)
+    pte = SOL / "model" / ("rps" if rps else "cpu") / "model.pte" if cpu else SOL / "model" / "model.pte"
+    description = "SqueezeNet RPS Cortex-M85 CPU" if rps else "TinyCNN Cortex-M85 CPU" if cpu else "AI layer for the TinyCNN Ethos-U85 example"
     run(
         python,
         SOL / "scripts" / "gen_components.py",
         "--pte",
-        SOL / "model" / "model.pte",
+        pte,
         *(("--pack-version", version) if version else ()),
         "--output",
         new,
+        "--backend",
+        args.backend,
+        "--description",
+        description,
     )
 
     if clayer.is_file() and filecmp.cmp(new, clayer, shallow=False):
@@ -86,7 +108,7 @@ def main() -> int:
     shutil.move(str(new), str(clayer))
     print(
         "[run_export] The model's operator set changed: "
-        "ai_layer.clayer.yml was regenerated.",
+        f"{clayer.name} was regenerated.",
         file=sys.stderr,
     )
     print(
