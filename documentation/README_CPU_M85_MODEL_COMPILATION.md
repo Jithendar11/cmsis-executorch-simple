@@ -407,6 +407,7 @@ Primary outputs:
 model/cpu/model.pte
 model/cpu/graph.txt
 model/cpu/validation.json
+ai_layer/NETWORK_SUMMARY.md
 ```
 
 TinyCNN uses deterministic untrained weights and synthetic samples. Use it
@@ -457,11 +458,21 @@ Primary outputs:
 model/rps/model.pte
 model/rps/graph.txt
 model/rps/validation.json
+ai_layer/NETWORK_SUMMARY.md
 ```
 
 The report includes input/output quantization parameters, expected INT8
 outputs, FP32 reference outputs, planned memory, checkpoint SHA-256, source
 images, normalization and ordered labels.
+
+Each successful export also regenerates `ai_layer/NETWORK_SUMMARY.md` from
+the serialized program. It reports planned model RAM, `.pte` storage payload,
+constant/weight/bias sizes, parameter and operator counts, compiled tensor
+shapes, and input/output quantization. `--check-only` prepares the summary
+without writing it. The latest exported model replaces the shared summary.
+No firmware build is needed. These model-level requirements exclude runtime
+code/metadata, stack, heap and board-specific memory placement; they are not
+total firmware SRAM or actual off-chip flash usage.
 
 The current RPS input is logical `[1,3,224,224]`, physically NHWC; its output
 is `[1,4]` INT8. Compilation uses RGB images, direct bilinear resize to
@@ -608,6 +619,7 @@ directly with Python to produce `model.pte`.
 |---|---|
 | `model/export_cpu.py` | Entry point: quantization, INT8 boundaries, Cortex-M85 lowering, serialization and export checks. |
 | `model/runtime_layout.py` | Layout adaptation and validation for portable concatenation and reshape operations. |
+| `model/network_summary.py` | Computes model-only memory/network statistics and renders the automatic Markdown report. |
 | `model/export_model.py` | Supplies `_strip_guards_fn` and `_write_header`, which the CPU exporter imports. Its Ethos-U export function is not called by CPU compilation. |
 | `model/model.py` | Defines TinyCNN and its inputs. Keep it even for the current RPS command because the exporter and shared helper module import it. |
 | `model/rps_model.py` | Required when using `--model rps`; constructs SqueezeNet 1.1, loads its weights and prepares calibration/validation images. |
@@ -655,6 +667,8 @@ machine rather than copying `.venv` between machines.
 
 For RPS, compilation creates `model/rps/model.pte`, `graph.txt` and
 `validation.json`. For TinyCNN, the corresponding directory is `model/cpu/`.
+Both export modes regenerate `ai_layer/NETWORK_SUMMARY.md`; this describes
+the latest exported model without reading firmware artifacts.
 The exporter also creates auxiliary headers under `ai_layer/rps_model/` or
 `ai_layer/cpu_model/`; these are generated artifacts and are not prerequisites
 for model compilation.

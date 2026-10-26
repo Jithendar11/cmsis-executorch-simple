@@ -17,6 +17,7 @@ from torchao.quantization.pt2e.quantize_pt2e import convert_pt2e, prepare_pt2e
 from export_model import _strip_guards_fn, _write_header
 from model import get_model
 from runtime_layout import PortableLayoutPass, validate_portable_layouts
+from network_summary import collect_network_stats, render_network_summary
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -150,7 +151,8 @@ def main():
     program = edge.to_executorch()
     from executorch.exir._serialize._program import deserialize_pte_binary
     from executorch.exir.schema import ScalarType
-    plan = deserialize_pte_binary(program.buffer).program.execution_plan[0]
+    serialized = deserialize_pte_binary(program.buffer).program
+    plan = serialized.execution_plan[0]
     for value in plan.inputs + plan.outputs:
         if plan.values[value].val.scalar_type != ScalarType.CHAR:
             raise RuntimeError("Serialized model input/output is not INT8")
@@ -194,15 +196,20 @@ def main():
     header += c_array("kExpected", [v for y in expected for v in y])
     report = dict(cpu=args.cpu, isa=target.backend.name, executorch=version("executorch"),
                   model=model_info, planned_tensor_bytes=planned_bytes,
+                  calibration_samples=len(calibration),
                   pte_bytes=len(program.buffer), output_scale=output_scale,
                   input=dict(dtype="int8", shape=list(shape), storage="NHWC", scale=input_scale, zero_point=input_zero_point),
                   output=dict(dtype="int8", shape=list(int8_outputs[0].shape), scale=output_scale, zero_point=output_zero_point),
                   tolerance=tolerance, expected=expected,
                   float_reference=float_outputs,
                   max_quantization_error=max(abs((a-output_zero_point)*output_scale-b) for y,z in zip(expected,float_outputs) for a,b in zip(y,z)))
+    stats = collect_network_stats(serialized, model)
+    report["network_summary"] = stats
+    summary_path = ROOT / "ai_layer" / "NETWORK_SUMMARY.md"
+    summary_markdown = render_network_summary(report, stats, pte.relative_to(ROOT).as_posix())
     report_json = json.dumps(report, indent=2) + "\n"
     if args.check_only:
-        print(f"[cpu export] check-only: {len(program.buffer)} byte program; headers and report prepared; no files written")
+        print(f"[cpu export] check-only: {len(program.buffer)} byte program; headers, reports and network summary prepared; no files written")
         return
     out.mkdir(parents=True, exist_ok=True)
     headers.mkdir(parents=True, exist_ok=True)
@@ -212,6 +219,9 @@ def main():
     (headers / "model_reference.h").write_text(header)
     (out / "graph.txt").write_text(graph)
     (out / "validation.json").write_text(report_json)
+    summary_path.write_text(summary_markdown, encoding="utf-8")
+    print(f"[cpu export] network summary: {summary_path}")
+    print(f"[cpu export] planned model RAM: {planned_bytes:,} bytes; model storage payload: {len(program.buffer):,} bytes (firmware overhead excluded)")
     print(f"[cpu export] {args.cpu} {target.backend.name}: {pte.stat().st_size} bytes; {len(inputs)} reference cases")
     print(f"[cpu export] INT8 input/output; output tolerance {tolerance} codes; FP32/INT8 max error {report['max_quantization_error']:.7f}")
 

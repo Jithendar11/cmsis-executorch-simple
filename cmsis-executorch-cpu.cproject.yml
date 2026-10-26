@@ -33,6 +33,7 @@ project:
         - $SolutionDir()$/model/model.py
         - $SolutionDir()$/model/export_cpu.py
         - $SolutionDir()$/model/runtime_layout.py
+        - $SolutionDir()$/model/network_summary.py
         - $SolutionDir()$/model/export_model.py
         - $SolutionDir()$/scripts/gen_components.py
         - $SolutionDir()$/cmsis-executorch-cpu.cproject.yml

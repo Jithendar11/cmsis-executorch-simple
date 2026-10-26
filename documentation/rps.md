@@ -31,6 +31,12 @@ The `.pte` is written to `model/rps/model.pte`; generated headers are in
 `ai_layer/rps_model/`, and the lowered graph and quantization report are in
 `model/rps/`. The report records the checkpoint SHA-256 and source images.
 
+Every successful export also regenerates `ai_layer/NETWORK_SUMMARY.md` with
+model-only RAM/storage requirements, operator counts, shapes and quantization
+parameters. No firmware build is required for this report. It does not infer
+whole-firmware SRAM or actual off-chip flash placement. `--check-only`
+prepares the report without writing any files.
+
 In CMSIS Solution, select **SSE-320-RPS / Debug**, then **Build** and **Run**.
 The build exports the model automatically and selects its operators from the
 installed ExecuTorch 1.4.1 pack. If the operator list changes, build a second
